@@ -23,12 +23,20 @@ repositories {
 	mavenCentral()
 }
 
+jar {
+	enabled = true
+}
+
+bootJar {
+	classifier = 'boot'
+}
 
 ext {
 	springCloudVersion = 'Finchley.RELEASE'
 }
 
 dependencies {
+	compile('net.logstash.logback:logstash-logback-encoder:5.0')
 	compile('org.springframework.boot:spring-boot-starter-web')
 	compile('org.springframework.cloud:spring-cloud-starter-sleuth')
 	compile('org.springframework.cloud:spring-cloud-starter-zipkin')

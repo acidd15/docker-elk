@@ -42,6 +42,31 @@ services:
     depends_on:
       - elasticsearch
 
+  zipkin:
+    image: openzipkin/zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - elk
+
+  product:
+    build:
+      context: product/
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8090:8090"
+    networks:
+      - elk
+
+  shop:
+    build:
+      context: shop/
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8080:8080"
+    networks:
+      - elk
+
 networks:
 
   elk:

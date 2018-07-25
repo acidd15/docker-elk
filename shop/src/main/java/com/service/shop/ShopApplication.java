@@ -36,7 +36,7 @@ public class ShopApplication {
 
 		log.info("Get products from product service.");
 
-		List<Object> products = restTemplate.getForObject("http://localhost:8090/products", List.class);
+		List<Object> products = restTemplate.getForObject("http://product:8090/products", List.class);
 
 		log.info("Products received from product service.");
 

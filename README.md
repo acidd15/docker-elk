@@ -1,259 +1,111 @@
-# Elastic stack (ELK) on Docker
+# Sleuth + ELK + Zipkin monitoring
 
-[![Join the chat at https://gitter.im/deviantony/docker-elk](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/deviantony/docker-elk?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Elastic Stack version](https://img.shields.io/badge/ELK-6.3.0-blue.svg?style=flat)](https://github.com/deviantony/docker-elk/issues/286)
-[![Build Status](https://api.travis-ci.org/deviantony/docker-elk.svg?branch=master)](https://travis-ci.org/deviantony/docker-elk)
+This repository shows you basic concept of Sleuth + ELK + Zipkin monitoring. This is a very simple project to proof the concepts.
 
-Run the latest version of the [Elastic stack](https://www.elastic.co/elk-stack) with Docker and Docker Compose.
-
-It will give you the ability to analyze any data set by using the searching/aggregation capabilities of Elasticsearch
-and the visualization power of Kibana.
-
-Based on the official Docker images from Elastic:
-
-* [elasticsearch](https://github.com/elastic/elasticsearch-docker)
-* [logstash](https://github.com/elastic/logstash-docker)
-* [kibana](https://github.com/elastic/kibana-docker)
-
-**Note**: Other branches in this project are available:
-
-* [`x-pack`](https://github.com/deviantony/docker-elk/tree/x-pack): X-Pack support
-* [`searchguard`](https://github.com/deviantony/docker-elk/tree/searchguard): Search Guard support
-* [`vagrant`](https://github.com/deviantony/docker-elk/tree/vagrant): run Docker inside Vagrant
-
-## Contents
-
-1. [Requirements](#requirements)
-   * [Host setup](#host-setup)
-   * [SELinux](#selinux)
-   * [Docker for Windows](#docker-for-windows)
-2. [Getting started](#getting-started)
-   * [Bringing up the stack](#bringing-up-the-stack)
-   * [Initial setup](#initial-setup)
-3. [Configuration](#configuration)
-   * [How can I tune the Kibana configuration?](#how-can-i-tune-the-kibana-configuration)
-   * [How can I tune the Logstash configuration?](#how-can-i-tune-the-logstash-configuration)
-   * [How can I tune the Elasticsearch configuration?](#how-can-i-tune-the-elasticsearch-configuration)
-   * [How can I scale out the Elasticsearch cluster?](#how-can-i-scale-up-the-elasticsearch-cluster)
-4. [Storage](#storage)
-   * [How can I persist Elasticsearch data?](#how-can-i-persist-elasticsearch-data)
-5. [Extensibility](#extensibility)
-   * [How can I add plugins?](#how-can-i-add-plugins)
-   * [How can I enable the provided extensions?](#how-can-i-enable-the-provided-extensions)
-6. [JVM tuning](#jvm-tuning)
-   * [How can I specify the amount of memory used by a service?](#how-can-i-specify-the-amount-of-memory-used-by-a-service)
-   * [How can I enable a remote JMX connection to a service?](#how-can-i-enable-a-remote-jmx-connection-to-a-service)
-
-## Requirements
-
-### Host setup
-
-1. Install [Docker](https://www.docker.com/community-edition#/download) version **1.10.0+**
-2. Install [Docker Compose](https://docs.docker.com/compose/install/) version **1.6.0+**
-3. Clone this repository
-
-### SELinux
-
-On distributions which have SELinux enabled out-of-the-box you will need to either re-context the files or set SELinux
-into Permissive mode in order for docker-elk to start properly. For example on Redhat and CentOS, the following will
-apply the proper context:
-
-```console
-$ chcon -R system_u:object_r:admin_home_t:s0 docker-elk/
-```
-
-### Docker for Windows
-
-If you're using Docker for Windows, ensure the "Shared Drives" feature is enabled for the `C:` drive (Docker for Windows > Settings > Shared Drives). See [Configuring Docker for Windows Shared Drives](https://blogs.msdn.microsoft.com/stevelasker/2016/06/14/configuring-docker-for-windows-volumes/) (MSDN Blog).
+You can use the Kibana to see the logs. And you can use the Zipkin to see the visualized request flows across the services.
 
 ## Usage
 
-### Bringing up the stack
-
-**Note**: In case you switched branch or updated a base image - you may need to run `docker-compose build` first
-
-Start the stack using `docker-compose`:
+First, build two services. The project has two services: product, shop. The shop service is dependent on the product service.
 
 ```console
-$ docker-compose up
+cd product
+gradle build clean && gradle build
+cd ..
+cd shop
+gradle build clean && gradle build
 ```
 
-You can also run all services in the background (detached mode) by adding the `-d` flag to the above command.
-
-Give Kibana a few seconds to initialize, then access the Kibana web UI by hitting
-[http://localhost:5601](http://localhost:5601) with a web browser.
-
-By default, the stack exposes the following ports:
-* 5000: Logstash TCP input.
-* 9200: Elasticsearch HTTP
-* 9300: Elasticsearch TCP transport
-* 5601: Kibana
-
-**WARNING**: If you're using `boot2docker`, you must access it via the `boot2docker` IP address instead of `localhost`.
-
-**WARNING**: If you're using *Docker Toolbox*, you must access it via the `docker-machine` IP address instead of
-`localhost`.
-
-Now that the stack is running, you will want to inject some log entries. The shipped Logstash configuration allows you
-to send content via TCP:
+Next, start docker-compose in the root directory.
 
 ```console
-$ nc localhost 5000 < /path/to/logfile.log
+docker-compose up
 ```
 
-## Initial setup
-
-### Default Kibana index pattern creation
-
-When Kibana launches for the first time, it is not configured with any index pattern.
-
-#### Via the Kibana web UI
-
-**NOTE**: You need to inject data into Logstash before being able to configure a Logstash index pattern via the Kibana web
-UI. Then all you have to do is hit the *Create* button.
-
-Refer to [Connect Kibana with
-Elasticsearch](https://www.elastic.co/guide/en/kibana/current/connect-to-elasticsearch.html) for detailed instructions
-about the index pattern configuration.
-
-#### On the command line
-
-Create an index pattern via the Kibana API:
+If you want to start with daemon mode, do this:
 
 ```console
-$ curl -XPOST -D- 'http://localhost:5601/api/saved_objects/index-pattern' \
-    -H 'Content-Type: application/json' \
-    -H 'kbn-version: 6.3.0' \
-    -d '{"attributes":{"title":"logstash-*","timeFieldName":"@timestamp"}}'
+docker-compose up -d
 ```
 
-The created pattern will automatically be marked as the default index pattern as soon as the Kibana UI is opened for the first time.
+It may takes some time to run all services.
 
-## Configuration
+## Zipkin
 
-**NOTE**: Configuration is not dynamically reloaded, you will need to restart the stack after any change in the
-configuration of a component.
+You can access with URL http://localhost:9411.
 
-### How can I tune the Kibana configuration?
+## Kibana
 
-The Kibana default configuration is stored in `kibana/config/kibana.yml`.
+You can access with URL http://localhost:5601.
 
-It is also possible to map the entire `config` directory instead of a single file.
+## How to test
 
-### How can I tune the Logstash configuration?
+First, make a request to http://localhost:8080/products. This is the shop service. It returns some json data.
 
-The Logstash configuration is stored in `logstash/config/logstash.yml`.
+It will create some logs and send it to the logstash. And then logstash send to the elasticsearch. Finally, elasticsearch save and create indexes.
 
-It is also possible to map the entire `config` directory instead of a single file, however you must be aware that
-Logstash will be expecting a
-[`log4j2.properties`](https://github.com/elastic/logstash-docker/tree/master/build/logstash/config) file for its own
-logging.
+At this time, you can see the request flows in the Zipkin.
 
-### How can I tune the Elasticsearch configuration?
+In case of Kibana, you need to create a index pattern first. Just type 'logstash-*' in the input box. And select @timestamp in the next page. Then you can list the logs in the Discover page.
 
-The Elasticsearch configuration is stored in `elasticsearch/config/elasticsearch.yml`.
+## Key part to integrate with sleuth, logstash and zipkin
 
-You can also specify the options you want to override directly via environment variables:
+Put your service name in the bootstrap.yml.
 
 ```yml
-elasticsearch:
-
-  environment:
-    network.host: "_non_loopback_"
-    cluster.name: "my-cluster"
+spring.application.name: product-service
 ```
 
-### How can I scale out the Elasticsearch cluster?
-
-Follow the instructions from the Wiki: [Scaling out
-Elasticsearch](https://github.com/deviantony/docker-elk/wiki/Elasticsearch-cluster)
-
-## Storage
-
-### How can I persist Elasticsearch data?
-
-The data stored in Elasticsearch will be persisted after container reboot but not after container removal.
-
-In order to persist Elasticsearch data even after removing the Elasticsearch container, you'll have to mount a volume on
-your Docker host. Update the `elasticsearch` service declaration to:
+Set zipkin url in the application.properties. Note that the zipkin in the url is docker link name as this project composed with docker-compose, So, you can not use localhost.
 
 ```yml
-elasticsearch:
-
-  volumes:
-    - /path/to/storage:/usr/share/elasticsearch/data
+spring.zipkin.baseUrl=http://zipkin:9411/
 ```
 
-This will store Elasticsearch data inside `/path/to/storage`.
+To send your logs to the logstash, you should set up the logback.xml as belows. In the destination element, It also uses docker link name(logstash).
 
-**NOTE:** beware of these OS-specific considerations:
-* **Linux:** the [unprivileged `elasticsearch` user][esuser] is used within the Elasticsearch image, therefore the
-  mounted data directory must be owned by the uid `1000`.
-* **macOS:** the default Docker for Mac configuration allows mounting files from `/Users/`, `/Volumes/`, `/private/`,
-  and `/tmp` exclusively. Follow the instructions from the [documentation][macmounts] to add more locations.
-
-[esuser]: https://github.com/elastic/elasticsearch-docker/blob/016bcc9db1dd97ecd0ff60c1290e7fa9142f8ddd/templates/Dockerfile.j2#L22
-[macmounts]: https://docs.docker.com/docker-for-mac/osxfs/
-
-## Extensibility
-
-### How can I add plugins?
-
-To add plugins to any ELK component you have to:
-
-1. Add a `RUN` statement to the corresponding `Dockerfile` (eg. `RUN logstash-plugin install logstash-filter-json`)
-2. Add the associated plugin code configuration to the service configuration (eg. Logstash input/output)
-3. Rebuild the images using the `docker-compose build` command
-
-### How can I enable the provided extensions?
-
-A few extensions are available inside the [`extensions`](extensions) directory. These extensions provide features which
-are not part of the standard Elastic stack, but can be used to enrich it with extra integrations.
-
-The documentation for these extensions is provided inside each individual subdirectory, on a per-extension basis. Some
-of them require manual changes to the default ELK configuration.
-
-## JVM tuning
-
-### How can I specify the amount of memory used by a service?
-
-By default, both Elasticsearch and Logstash start with [1/4 of the total host
-memory](https://docs.oracle.com/javase/8/docs/technotes/guides/vm/gctuning/parallel.html#default_heap_size) allocated to
-the JVM Heap Size.
-
-The startup scripts for Elasticsearch and Logstash can append extra JVM options from the value of an environment
-variable, allowing the user to adjust the amount of memory that can be used by each component:
-
-| Service       | Environment variable |
-|---------------|----------------------|
-| Elasticsearch | ES_JAVA_OPTS         |
-| Logstash      | LS_JAVA_OPTS         |
-
-To accomodate environments where memory is scarce (Docker for Mac has only 2 GB available by default), the Heap Size
-allocation is capped by default to 256MB per service in the `docker-compose.yml` file. If you want to override the
-default JVM configuration, edit the matching environment variable(s) in the `docker-compose.yml` file.
-
-For example, to increase the maximum JVM Heap Size for Logstash:
-
-```yml
-logstash:
-
-  environment:
-    LS_JAVA_OPTS: "-Xmx1g -Xms1g"
+```xml
+<appender name="logstash" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+        <destination>logstash:5000</destination>
+        <!-- encoder is required -->
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp>
+                    <timeZone>UTC</timeZone>
+                </timestamp>
+                <pattern>
+                    <pattern>
+                        {
+                        "severity": "%level",
+                        "service": "${springAppName:-}",
+                        "trace": "%X{X-B3-TraceId:-}",
+                        "span": "%X{X-B3-SpanId:-}",
+                        "parent": "%X{X-B3-ParentSpanId:-}",
+                        "exportable": "%X{X-Span-Export:-}",
+                        "pid": "${PID:-}",
+                        "thread": "%thread",
+                        "class": "%logger{40}",
+                        "rest": "%message"
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
+        </encoder>
+    </appender>
 ```
 
-### How can I enable a remote JMX connection to a service?
+An important note here. If you use RestTemplate, RestTemplate instance must be a spring-managed bean. That is, if you use RestTemplate as belows, it dose not send any trace-id to target http requests automatically. So, you should use auto-wired bean or some spring-managed bean.
 
-As for the Java Heap memory (see above), you can specify JVM options to enable JMX and map the JMX port on the docker
-host.
-
-Update the `{ES,LS}_JAVA_OPTS` environment variable with the following content (I've mapped the JMX service on the port
-18080, you can change that). Do not forget to update the `-Djava.rmi.server.hostname` option with the IP address of your
-Docker host (replace **DOCKER_HOST_IP**):
-
-```yml
-logstash:
-
-  environment:
-    LS_JAVA_OPTS: "-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.port=18080 -Dcom.sun.management.jmxremote.rmi.port=18080 -Djava.rmi.server.hostname=DOCKER_HOST_IP -Dcom.sun.management.jmxremote.local.only=false"
+```java
+// It does not work automatically!
+RestTemplate restTemplate = new RestTemplate();
 ```
+
+## tips
+
+If you want to change service's source code to see what's going on. Then you need to remove existing docker images. You can remove existing docker images with one command as belows.
+
+```console
+docker-compose down --rmi all
+``` 
+
