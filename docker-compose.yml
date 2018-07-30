@@ -46,6 +46,7 @@ services:
     image: openzipkin/zipkin
     ports:
       - "9411:9411"
+      - "9410:9410"
     networks:
       - elk
 
