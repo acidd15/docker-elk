@@ -101,7 +101,7 @@ An important note here. If you use RestTemplate, RestTemplate instance must be a
 RestTemplate restTemplate = new RestTemplate();
 ```
 
-## tips
+## Tips
 
 If you want to change service's source code to see what's going on. Then you need to remove existing docker images. You can remove existing docker images with one command as belows.
 
